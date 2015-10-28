@@ -43,43 +43,53 @@ public class CmdListener extends Thread{
 					if(cmd != null){
 						BluetoothSerialService btss = MainActivity.mBtSS[cmd.carid];
 						switch(cmd.cmd){
-						case 0:
+						case Command.STOP:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.NO_SPEED).array();
 			            		btss.write(send);
 			            	}
 							break;
-						case 1:
+						case Command.FORWARD:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.SPEED_FRONT[cmd.param]).array();
 			            		btss.write(send);
 			            	}
 							break;
-						//left
-						case 3:
+						case Command.BACKWARD:
+							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
+			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.SPEED_BACK[cmd.param]).array();
+			            		btss.write(send);
+			            	}
+							break;
+						case Command.LEFT:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.STEER_LEFT[cmd.param]).array();
 			            		btss.write(send);
 			            		System.out.println("steer left");
 			            	}
 							break;
-						//right	
-						case 4:
+						case Command.RIGHT:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.STEER_RIGHT[cmd.param]).array();
 			            		btss.write(send);
 			            		System.out.println("steer right");
 			            	}
 							break;
-						//no steer
-						case 5:
+						case Command.NO_STEER:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.NO_STEER).array();
 			            		btss.write(send);
 			            	}
 							break;
+						case Command.HORN:
+							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
+			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_ON).array();
+			            		btss.write(send);
+			            		new HornThread(btss, cmd.param).start();
+			            	}
+							break;
 						}
-						System.out.println(cmd.cmd+" "+cmd.param);
+//						System.out.println(cmd.cmd+" "+cmd.param);
 					}
 				}
 			}
@@ -87,11 +97,34 @@ public class CmdListener extends Thread{
 		
 	};
 	
+	private class HornThread extends Thread{
+		private BluetoothSerialService btss = null;
+		private int time = 0;
+		
+		public HornThread(BluetoothSerialService btss, int time) {
+			this.btss = btss;
+			this.time = time;
+		}
+		
+		public void run() {
+			try {
+				Thread.sleep(time);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
+        		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_OFF).array();
+        		btss.write(send);
+        	}
+		}
+	}
+	
 	public CmdListener(String ip, Button conn) {
 		this.ip = ip;
 		connButton = conn;
 //		new Thread(new Handler()).start();
 	}
+	
 	@Override
 	public void run() {
 		instrHandler.setDaemon(true);
