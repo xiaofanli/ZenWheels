@@ -33,7 +33,7 @@ import com.example.zenwheels.R;
 public class MainActivity extends Activity{
 	private BluetoothAdapter mBluetoothAdapter = null;
 	public static BluetoothSerialService[] mBtSS = {null, null, null, null, null, null};
-	public static final raceCarCodes codes = new raceCarCodes();
+	public static final RaceCarCodes codes = new RaceCarCodes();
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_ENABLE_BT = 3;
