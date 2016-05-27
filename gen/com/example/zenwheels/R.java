@@ -75,6 +75,8 @@ public final class R {
         public static final int no_steer=0x7f06000e;
         public static final int none_paired=0x7f060005;
         public static final int not_connected=0x7f06000c;
+        public static final int pc_connected=0x7f060014;
+        public static final int pc_disconnected=0x7f060015;
         public static final int select_device=0x7f060006;
         public static final int steer_left=0x7f06000d;
         public static final int steer_left_minus=0x7f060011;

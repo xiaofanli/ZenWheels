@@ -21,5 +21,7 @@
     <string name="steer_left_minus">-</string>
     <string name="steer_right">SteerRight</string>
     <string name="tilt_to_move">Tilt to move and steer</string>
+    <string name="pc_connected">PC_CONNECTED</string>
+    <string name="pc_disconnected">PC_DISCONNECTED</string>
 
 </resources>

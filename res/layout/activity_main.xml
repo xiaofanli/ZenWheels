@@ -156,8 +156,7 @@
         android:layout_width="80dp"
         android:layout_height="80dp"
         android:layout_above="@+id/steer_left"
-        android:layout_alignLeft="@+id/steer_left"
-        android:text="connectPC" />
+        android:layout_alignLeft="@+id/steer_left" />
 
     <TextView
         android:id="@+id/address_text"

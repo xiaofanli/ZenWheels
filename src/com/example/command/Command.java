@@ -1,7 +1,8 @@
 package com.example.command;
 
 public class Command {
-	int carid, cmd, param;
+	String car;
+	int cmd, param;
 
 	public final static int STOP = 0;
 	public final static int FORWARD = 1;
@@ -10,14 +11,16 @@ public class Command {
 	public final static int RIGHT = 4;
 	public final static int NO_STEER = 5;
 	public final static int HORN = 6;
+	public final static int CONNECT = 7;
+	public final static int DISCONNECT = 8;
 	
 	public Command(int cmd, int param) {
 		this.cmd = cmd;
 		this.param = param;
 	}
 	
-	public Command(int carid, int cmd, int param) {
-		this.carid = carid;
+	public Command(String car, int cmd, int param) {
+		this.car = car;
 		this.cmd = cmd;
 		this.param = param;
 	}

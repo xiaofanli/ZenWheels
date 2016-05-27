@@ -3,6 +3,7 @@ package com.example.bluetooth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.util.UUID;
 
 import com.example.car.MainActivity;
@@ -169,6 +170,7 @@ public class BluetoothSerialService {
 	        //this.mConnectedThread.start();
 	        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
 	        Bundle bundle = new Bundle();
+	        bundle.putString(MainActivity.DEVICE_ADDR, device.getAddress());
 	        bundle.putString(MainActivity.DEVICE_NAME, device.getName());
 	        msg.setData(bundle);
 	        mHandler.sendMessage(msg);
@@ -209,6 +211,9 @@ public class BluetoothSerialService {
 	                // This is a blocking call and will only return on a
 	                // successful connection or an exception
 	                mSocket.connect();
+	                Field port = mSocket.getClass().getDeclaredField("mPort");
+	                port.setAccessible(true);
+	                Log.d(TAG, "mPort: " + port.get(mSocket));
 	            } catch (IOException e) {
 	                // Close the socket
 	                try {
@@ -218,7 +223,14 @@ public class BluetoothSerialService {
 	                }
 	                connectionFailed();
 	                return;
-	            }
+	            } catch (NoSuchFieldException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
 	            // Reset the ConnectThread because we're done
 	            synchronized (BluetoothSerialService.this) {

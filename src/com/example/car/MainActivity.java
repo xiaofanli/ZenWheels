@@ -3,8 +3,10 @@ package com.example.car;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -16,6 +18,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -32,13 +35,27 @@ import com.example.zenwheels.R;
 
 public class MainActivity extends Activity{
 	private BluetoothAdapter mBluetoothAdapter = null;
-	public static BluetoothSerialService[] mBtSS = {null, null, null, null, null, null};
+//	public static BluetoothSerialService[] mBtSS = {null, null, null, null, null, null};
+	public static Map<String, BluetoothSerialService> mBtSS = new HashMap<String, BluetoothSerialService>();
 	public static final RaceCarCodes codes = new RaceCarCodes();
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_ENABLE_BT = 3;
-    private static Context context;
-    private static Handler handler = new Handler();
+    private Context context;
+    private Handler handler = new Handler(){
+    	public void handleMessage(Message msg) {
+    		switch (msg.what) {
+			case MESSAGE_DEVICE_NAME:{
+				connectedCars.add(carMAC.get(msg.getData().get(DEVICE_ADDR)));
+				if(cmdListener != null)
+					cmdListener.sendCarInfo();
+			}
+				break;
+			default:
+				break;
+			}
+    	};
+    };
     private Intent data;
     private int lightsCount = 0;
     private int blinkLeftFlag = 0;
@@ -46,6 +63,7 @@ public class MainActivity extends Activity{
     private int faultFlag = 0;
     // Key names received from the BluetoothSerialService Handler
     public static final String DEVICE_NAME = "device_name";
+    public static final String DEVICE_ADDR = "device_addr";
     public static final String TOAST = "toast";
     // Message types sent from the BluetoothSerialService Handler
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -54,17 +72,65 @@ public class MainActivity extends Activity{
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
     
-    private String serverIP = "192.168.1.100";
-    private Button connectpc;
+	public static final String SILVER = "Silver SUV";//A
+	public static final String GREEN = "Green Car";//B
+	public static final String RED = "Red Car";//C
+	public static final String WHITE = "White Car";//D
+	public static final String BLACK = "Black Car";//E
+	public static final String ORANGE = "Orange Car";//F
+    
+    private static String IP = "192.168.1.121";
+    public static final int PORT = 8888;
+    private static Button connectpc;
 	private CmdListener cmdListener = null;
 	private TextView addressText;
 	private EditText steerParam;
 	public static Map<String, String> mapping = new HashMap<String, String>();
-	public static List<String> carName = new ArrayList<String>(), carAddr = new ArrayList<String>();
-	public static List<String> addr2pos = new ArrayList<String>();
-	public static List<String> name2pos = new ArrayList<String>();
+	public static Map<String, String> carMAC = new HashMap<String, String>();
+	public static Set<String> connectedCars = new HashSet<String>();
+//	public static List<String> carName = new ArrayList<String>(), carAddr = new ArrayList<String>();
+//	public static List<String> addr2pos = new ArrayList<String>();
+//	public static List<String> name2pos = new ArrayList<String>();
+	
+	static{
+		carMAC.put(SILVER, "00:06:66:61:A9:01");
+		carMAC.put(WHITE, "00:06:66:61:AA:61");
+		carMAC.put(GREEN, "00:06:66:45:9D:35");
+		carMAC.put(RED, "00:06:66:61:9F:38");
+		carMAC.put(BLACK, "00:06:66:49:A8:C4");
+		carMAC.put(ORANGE, "00:06:66:49:96:0C");
+		
+		carMAC.put("00:06:66:61:A9:01", SILVER);
+		carMAC.put("00:06:66:61:AA:61", WHITE);
+		carMAC.put("00:06:66:45:9D:35", GREEN);
+		carMAC.put("00:06:66:61:9F:38", RED);
+		carMAC.put("00:06:66:49:A8:C4", BLACK);
+		carMAC.put("00:06:66:49:96:0C", ORANGE);
+	}
+	
+	public static final Handler msgHandler = new Handler(){
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case R.string.pc_connected:
+				if(connectpc != null)
+					connectpc.setText("Connected");
+				break;
+			case R.string.pc_disconnected:
+				if(connectpc != null)
+					connectpc.setText("Disconnected");
+				break;	
+			default:
+				break;
+			}
+		}
+	};
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		setContentView(R.layout.activity_main);
+		
 		context = this;
 		// Get local Bluetooth adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -74,10 +140,10 @@ public class MainActivity extends Activity{
             finish();
             return;
         }
-		
-		super.onCreate(savedInstanceState);
-		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-		setContentView(R.layout.activity_main);
+        
+//		mBtSS = new BluetoothSerialService(context, handler);
+//		for(int i = 0;i < mBtSS.length;i++)
+//			mBtSS[i] = new BluetoothSerialService(context, handler);
 		
 		addressText = (TextView) findViewById(R.id.address_text);
 		steerParam = (EditText) findViewById(R.id.steer_param);
@@ -90,22 +156,18 @@ public class MainActivity extends Activity{
 		    }
 		});
 		
-//		mBtSS = new BluetoothSerialService(context, handler);
-		for(int i = 0;i < mBtSS.length;i++)
-			mBtSS[i] = new BluetoothSerialService(context, handler);
-		
-		addr2pos.add("00:06:66:61:AA:61");
-		name2pos.add("White Car");
-		addr2pos.add("00:06:66:45:9D:35");
-		name2pos.add("Green Car");
-		addr2pos.add("00:06:66:61:9F:38");
-		name2pos.add("Red Car");
-		addr2pos.add("00:06:66:49:A8:C4");
-		name2pos.add("Black Car");
-		addr2pos.add("00:06:66:61:A9:01");
-		name2pos.add("Silver SUV");
-		addr2pos.add("00:06:66:49:96:0C");
-		name2pos.add("Orange Car");
+//		addr2pos.add("00:06:66:61:AA:61");
+//		name2pos.add("White Car");
+//		addr2pos.add("00:06:66:45:9D:35");
+//		name2pos.add("Green Car");
+//		addr2pos.add("00:06:66:61:9F:38");
+//		name2pos.add("Red Car");
+//		addr2pos.add("00:06:66:49:A8:C4");
+//		name2pos.add("Black Car");
+//		addr2pos.add("00:06:66:61:A9:01");
+//		name2pos.add("Silver SUV");
+//		addr2pos.add("00:06:66:49:96:0C");
+//		name2pos.add("Orange Car");
 		
 		mapping.put("MicroCar-97", "White Car");
 		mapping.put("MicroCar-53", "Green Car");
@@ -114,6 +176,57 @@ public class MainActivity extends Activity{
 		mapping.put("MicroCar-1", "Silver SUV");
 		mapping.put("MicroCar-12", "Orange Car");
 		
+		connectpc = (Button) findViewById(R.id.pc_connect);
+		connectpc.setText(R.string.pc_disconnected);
+		cmdListener = new CmdListener(null, connectpc, mBluetoothAdapter, context, handler);
+		new Thread(cmdListener).start();
+		connectpc.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				if(cmdListener.isConnected()){
+					cmdListener.wakemeup = false;
+					cmdListener.closeSocket();
+//					connect_button.setText("Connect");
+				}
+				else{
+//				else if(mBtSS != null && mBtSS.getState() == BluetoothSerialService.STATE_CONNECTED){
+//					connect_button.setText("Connect");
+					final EditText input = new EditText(context);
+					input.setText(IP);
+					new AlertDialog.Builder(context).setTitle("请输入IP").setIcon(android.R.drawable.ic_dialog_info)
+							.setView(input).setNegativeButton("取消", null).setPositiveButton("确定",new DialogInterface.OnClickListener() {
+								@Override
+								public void onClick(DialogInterface dialog,int which) {
+									if(cmdListener == null){
+										cmdListener = new CmdListener(input.getText().toString(), connectpc, mBluetoothAdapter, context, handler);
+										new Thread(cmdListener).start();
+									}
+									else{
+										cmdListener.wakemeup = true;
+										synchronized (cmdListener.wakeObj) {
+											System.out.println("notify");
+											cmdListener.wakeObj.notify();
+										}
+									}
+									synchronized (cmdListener.obj) {
+										try {
+											cmdListener.obj.wait();
+										} catch (InterruptedException e) {
+											e.printStackTrace();
+										}
+									}
+									if (cmdListener.isConnected()) {
+//										connect_button.setText("Disconnect");
+										Toast.makeText(getApplicationContext(),"Connection Successful",Toast.LENGTH_LONG).show();
+									} else {
+//										connect_button.setText("Connect");
+										Toast.makeText(getApplicationContext(),"Connection Failed",Toast.LENGTH_LONG).show();
+									}
+								}
+							}).show();
+				}
+			}
+		});
+/*		
 		Button steerStop = (Button)findViewById(R.id.steer_stop);
 		steerStop.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -129,7 +242,7 @@ public class MainActivity extends Activity{
 				}
 			}
 		});
-/*		
+		
 		Button forward = (Button)findViewById(R.id.steer_front);
 		forward.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -401,53 +514,7 @@ public class MainActivity extends Activity{
             }
         });
 */		
-		connectpc = (Button) findViewById(R.id.pc_connect);
-		connectpc.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if(CmdListener.connected){
-					cmdListener.wakemeup = false;
-					cmdListener.closeSocket();
-//					connect_button.setText("Connect");
-				}
-				else{
-//				else if(mBtSS != null && mBtSS.getState() == BluetoothSerialService.STATE_CONNECTED){
-//					connect_button.setText("Connect");
-					final EditText input = new EditText(context);
-					input.setText(serverIP);
-					new AlertDialog.Builder(context).setTitle("请输入IP").setIcon(android.R.drawable.ic_dialog_info)
-							.setView(input).setNegativeButton("取消", null).setPositiveButton("确定",new DialogInterface.OnClickListener() {
-								@Override
-								public void onClick(DialogInterface dialog,int which) {
-									if(cmdListener == null){
-										cmdListener = new CmdListener(input.getText().toString(), connectpc);
-										new Thread(cmdListener).start();
-									}
-									else{
-										cmdListener.wakemeup = true;
-										synchronized (cmdListener.wakeObj) {
-											System.out.println("notify");
-											cmdListener.wakeObj.notify();
-										}
-									}
-									synchronized (cmdListener.obj) {
-										try {
-											cmdListener.obj.wait();
-										} catch (InterruptedException e) {
-											e.printStackTrace();
-										}
-									}
-									if (CmdListener.connected) {
-//										connect_button.setText("Disconnect");
-										Toast.makeText(getApplicationContext(),"Connection Successful",Toast.LENGTH_LONG).show();
-									} else {
-//										connect_button.setText("Connect");
-										Toast.makeText(getApplicationContext(),"Connection Failed",Toast.LENGTH_LONG).show();
-									}
-								}
-							}).show();
-				}
-			}
-		});
+		
 	}
 	
 	@Override
@@ -457,11 +524,9 @@ public class MainActivity extends Activity{
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         } else {
-//            if (mBtSS == null) 
-//            	mBtSS = new BluetoothSerialService(context, handler);
-        	for(BluetoothSerialService bt : mBtSS)
-        		if(bt == null)
-        			bt = new BluetoothSerialService(context, handler);
+//        	for(int i = 0;i < mBtSS.length;i++)
+//        		if(mBtSS[i] == null)
+//        			mBtSS[i] = new BluetoothSerialService(context, handler);
         }
     }
 	
@@ -496,27 +561,24 @@ public class MainActivity extends Activity{
         if(mBluetoothAdapter == null) {
         	return;
         }
-        if(!carName.contains(name)){
-        	System.out.println(name);
-	        carAddr.add(address);
-	        carName.add(name);
-	        if(cmdListener != null)
-	        	cmdListener.sendCarInfo();
-        }
+//        if(!carName.contains(name)){
+//        	System.out.println(name);
+//	        carAddr.add(address);
+//	        carName.add(name);
+//	        if(cmdListener != null)
+//	        	cmdListener.sendCarInfo();
+//        }
 //        addressText.setText(name+"\n"+address);
-        
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+//        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
         // Attempt to connect to the device
 //        mBtSS.connect(device, secure);
-        mBtSS[addr2pos.indexOf(device.getAddress())].connect(device, secure);
-        
+//        mBtSS[addr2pos.indexOf(device.getAddress())].connect(device, secure);        
     }
 	
 	@Override
 	protected void onResume() {
 		  super.onResume();
 	}
-
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
