@@ -14,8 +14,10 @@ import com.example.car.MainActivity;
 import com.example.zenwheels.R;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.Button;
 
 public class CmdListener extends Thread{
@@ -101,9 +103,8 @@ public class CmdListener extends Thread{
 							break;
 						case Command.HORN:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
-			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_ON).array();
-			            		btss.write(send);
-			            		new HornThread(btss, cmd.param).start();
+			            		btss.write(ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_ON).array());
+			            		MainActivity.threadPool.execute(new HornTask(btss, cmd.param));
 			            	}
 							break;
 						case Command.CONNECT:
@@ -111,7 +112,11 @@ public class CmdListener extends Thread{
 								btss = new BluetoothSerialService(context, handler);
 								MainActivity.mBtSS.put(cmd.car, btss);
 							}
-							btss.connect(mBluetoothAdapter.getRemoteDevice(MainActivity.carMAC.get(cmd.car)), true);
+							BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(MainActivity.carAddrMap.get(cmd.car));
+							if(btss.getState() == BluetoothSerialService.STATE_CONNECTED)
+								handler.obtainMessage(MainActivity.MESSAGE_DEVICE_CONNECTED, device).sendToTarget();
+							else
+								btss.connect(device, true);
 							break;
 						case Command.DISCONNECT:
 							if(btss != null)
@@ -126,11 +131,11 @@ public class CmdListener extends Thread{
 		
 	};
 	
-	private class HornThread extends Thread{
+	private class HornTask implements Runnable{
 		private BluetoothSerialService btss = null;
 		private int time = 0;
 		
-		public HornThread(BluetoothSerialService btss, int time) {
+		public HornTask(BluetoothSerialService btss, int time) {
 			this.btss = btss;
 			this.time = time;
 		}
@@ -141,15 +146,10 @@ public class CmdListener extends Thread{
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
-        		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_OFF).array();
-        		btss.write(send);
-        	}
+			if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED)
+        		btss.write(ByteBuffer.allocate(4).putInt(MainActivity.codes.HORN_OFF).array());
 		}
 	}
-	
-//	public CmdListener() {
-//	}
 
 	@Override
 	public void run() {
@@ -160,6 +160,8 @@ public class CmdListener extends Thread{
 		} catch (IOException e2) {
 			e2.printStackTrace();
 		}
+		if(server == null)
+			System.err.println("server is null");
 		while(true){
 			try {
 //				socket = new Socket(ip, MainActivity.PORT);
@@ -168,8 +170,8 @@ public class CmdListener extends Thread{
 				in = new DataInputStream(socket.getInputStream());
 				out = new DataOutputStream(socket.getOutputStream());
 //				connected = true;
-				sendCarInfo();
-				MainActivity.msgHandler.obtainMessage(R.string.pc_connected).sendToTarget();
+				sendConnectedCarInfo();
+				handler.obtainMessage(R.string.pc_connected).sendToTarget();
 //				new LongTimeTask().execute("Disconnect");
 				synchronized (obj) {
 					obj.notify();
@@ -177,7 +179,7 @@ public class CmdListener extends Thread{
 			}catch (IOException e) {
 				e.printStackTrace();
 //				connected = false;
-				MainActivity.msgHandler.obtainMessage(R.string.pc_disconnected).sendToTarget();
+				handler.obtainMessage(R.string.pc_disconnected).sendToTarget();
 //				new LongTimeTask().execute("Connect");
 			}
 			
@@ -195,7 +197,7 @@ public class CmdListener extends Thread{
 				} catch (IOException e) {
 					e.printStackTrace();
 //					connected = false;
-					MainActivity.msgHandler.obtainMessage(R.string.pc_disconnected).sendToTarget();
+					handler.obtainMessage(R.string.pc_disconnected).sendToTarget();
 //					new LongTimeTask().execute("Connect");
 					break; 
 				}
@@ -222,13 +224,25 @@ public class CmdListener extends Thread{
 		}
 	}
 	
-	public void sendCarInfo(){
+	public void sendConnectedCarInfo(){
 		if(isConnected() && !MainActivity.connectedCars.isEmpty()){
-			String str = "";
+			String str = "ADD";
 			for(String car : MainActivity.connectedCars)
-				str += car + "_";
+				str += "_" + car;
 			try {
 				out.writeUTF(str);
+				out.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void sendLostCarInfo(String car){
+		if(isConnected()){
+			try {
+				out.writeUTF("REMOVE_" + car);
+				out.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -245,7 +259,7 @@ public class CmdListener extends Thread{
 				in.close();
 				socket.close();
 //				connected = false;
-				MainActivity.msgHandler.obtainMessage(R.string.pc_disconnected).sendToTarget();
+				handler.obtainMessage(R.string.pc_disconnected).sendToTarget();
 //				new LongTimeTask().execute("Connect");
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -253,17 +267,4 @@ public class CmdListener extends Thread{
 			
 		}
 	}
-	
-//	class LongTimeTask extends AsyncTask<String, Void, String>{
-//
-//		@Override
-//		protected String doInBackground(String... params) {
-//			return params[0];
-//		}
-//		
-//		@Override
-//		protected void onPostExecute(String result) {
-//			connButton.setText(result);
-//		}
-//	}
 }

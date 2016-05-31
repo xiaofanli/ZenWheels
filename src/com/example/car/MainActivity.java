@@ -1,12 +1,11 @@
 package com.example.car;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -38,6 +37,7 @@ public class MainActivity extends Activity{
 //	public static BluetoothSerialService[] mBtSS = {null, null, null, null, null, null};
 	public static Map<String, BluetoothSerialService> mBtSS = new HashMap<String, BluetoothSerialService>();
 	public static final RaceCarCodes codes = new RaceCarCodes();
+	public static final ExecutorService threadPool = Executors.newCachedThreadPool();
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_ENABLE_BT = 3;
@@ -45,12 +45,27 @@ public class MainActivity extends Activity{
     private Handler handler = new Handler(){
     	public void handleMessage(Message msg) {
     		switch (msg.what) {
-			case MESSAGE_DEVICE_NAME:{
-				connectedCars.add(carMAC.get(msg.getData().get(DEVICE_ADDR)));
+			case MESSAGE_DEVICE_CONNECTED:{
+				connectedCars.add(carAddrMap.get(((BluetoothDevice)msg.obj).getAddress()));
 				if(cmdListener != null)
-					cmdListener.sendCarInfo();
+					cmdListener.sendConnectedCarInfo();
 			}
 				break;
+			case MESSAGE_DEVICE_DISCONNECTED:{
+				String car = carAddrMap.get(((BluetoothDevice)msg.obj).getAddress());
+				connectedCars.remove(car);
+				if(cmdListener != null)
+					cmdListener.sendLostCarInfo(car);
+			}
+				break;
+			case R.string.pc_connected:
+				if(connectpc != null)
+					connectpc.setText("Connected");
+				break;
+			case R.string.pc_disconnected:
+				if(connectpc != null)
+					connectpc.setText("Disconnected");
+				break;	
 			default:
 				break;
 			}
@@ -71,6 +86,8 @@ public class MainActivity extends Activity{
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
+    public static final int MESSAGE_DEVICE_CONNECTED = 6;
+    public static final int MESSAGE_DEVICE_DISCONNECTED = 7;
     
 	public static final String SILVER = "Silver SUV";//A
 	public static final String GREEN = "Green Car";//B
@@ -86,44 +103,34 @@ public class MainActivity extends Activity{
 	private TextView addressText;
 	private EditText steerParam;
 	public static Map<String, String> mapping = new HashMap<String, String>();
-	public static Map<String, String> carMAC = new HashMap<String, String>();
+	public static Map<String, String> carAddrMap = new HashMap<String, String>();
 	public static Set<String> connectedCars = new HashSet<String>();
 //	public static List<String> carName = new ArrayList<String>(), carAddr = new ArrayList<String>();
 //	public static List<String> addr2pos = new ArrayList<String>();
 //	public static List<String> name2pos = new ArrayList<String>();
 	
 	static{
-		carMAC.put(SILVER, "00:06:66:61:A9:01");
-		carMAC.put(WHITE, "00:06:66:61:AA:61");
-		carMAC.put(GREEN, "00:06:66:45:9D:35");
-		carMAC.put(RED, "00:06:66:61:9F:38");
-		carMAC.put(BLACK, "00:06:66:49:A8:C4");
-		carMAC.put(ORANGE, "00:06:66:49:96:0C");
+		carAddrMap.put(SILVER, "00:06:66:61:A9:01");
+		carAddrMap.put(WHITE, "00:06:66:61:AA:61");
+		carAddrMap.put(GREEN, "00:06:66:45:9D:35");
+		carAddrMap.put(RED, "00:06:66:61:9F:38");
+		carAddrMap.put(BLACK, "00:06:66:49:A8:C4");
+		carAddrMap.put(ORANGE, "00:06:66:49:96:0C");
 		
-		carMAC.put("00:06:66:61:A9:01", SILVER);
-		carMAC.put("00:06:66:61:AA:61", WHITE);
-		carMAC.put("00:06:66:45:9D:35", GREEN);
-		carMAC.put("00:06:66:61:9F:38", RED);
-		carMAC.put("00:06:66:49:A8:C4", BLACK);
-		carMAC.put("00:06:66:49:96:0C", ORANGE);
+		carAddrMap.put("00:06:66:61:A9:01", SILVER);
+		carAddrMap.put("00:06:66:61:AA:61", WHITE);
+		carAddrMap.put("00:06:66:45:9D:35", GREEN);
+		carAddrMap.put("00:06:66:61:9F:38", RED);
+		carAddrMap.put("00:06:66:49:A8:C4", BLACK);
+		carAddrMap.put("00:06:66:49:96:0C", ORANGE);
+		
+		mapping.put("MicroCar-97", "White Car");
+		mapping.put("MicroCar-53", "Green Car");
+		mapping.put("MicroCar-56", "Red Car");
+		mapping.put("MicroCar-96", "Black Car");
+		mapping.put("MicroCar-1", "Silver SUV");
+		mapping.put("MicroCar-12", "Orange Car");
 	}
-	
-	public static final Handler msgHandler = new Handler(){
-		public void handleMessage(Message msg) {
-			switch (msg.what) {
-			case R.string.pc_connected:
-				if(connectpc != null)
-					connectpc.setText("Connected");
-				break;
-			case R.string.pc_disconnected:
-				if(connectpc != null)
-					connectpc.setText("Disconnected");
-				break;	
-			default:
-				break;
-			}
-		}
-	};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -168,13 +175,6 @@ public class MainActivity extends Activity{
 //		name2pos.add("Silver SUV");
 //		addr2pos.add("00:06:66:49:96:0C");
 //		name2pos.add("Orange Car");
-		
-		mapping.put("MicroCar-97", "White Car");
-		mapping.put("MicroCar-53", "Green Car");
-		mapping.put("MicroCar-56", "Red Car");
-		mapping.put("MicroCar-96", "Black Car");
-		mapping.put("MicroCar-1", "Silver SUV");
-		mapping.put("MicroCar-12", "Orange Car");
 		
 		connectpc = (Button) findViewById(R.id.pc_connect);
 		connectpc.setText(R.string.pc_disconnected);
