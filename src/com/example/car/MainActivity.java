@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -135,25 +136,22 @@ public class MainActivity extends Activity{
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+//		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 		setContentView(R.layout.activity_main);
-		
+		System.out.println(Thread.currentThread());
 		context = this;
 		// Get local Bluetooth adapter
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		if(mBluetoothAdapter == null)
+			mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         // If the adapter is null, then Bluetooth is not supported
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
-        
-//		mBtSS = new BluetoothSerialService(context, handler);
-//		for(int i = 0;i < mBtSS.length;i++)
-//			mBtSS[i] = new BluetoothSerialService(context, handler);
 		
-		addressText = (TextView) findViewById(R.id.address_text);
-		steerParam = (EditText) findViewById(R.id.steer_param);
+//		addressText = (TextView) findViewById(R.id.address_text);
+//		steerParam = (EditText) findViewById(R.id.steer_param);
 		
 		Button pairedDevicesBtn = (Button)findViewById(R.id.bluetooth_connect);
 		pairedDevicesBtn.setOnClickListener(new Button.OnClickListener() {
@@ -178,343 +176,10 @@ public class MainActivity extends Activity{
 		
 		connectpc = (Button) findViewById(R.id.pc_connect);
 		connectpc.setText(R.string.pc_disconnected);
-		cmdListener = new CmdListener(null, connectpc, mBluetoothAdapter, context, handler);
-		new Thread(cmdListener).start();
-		connectpc.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if(cmdListener.isConnected()){
-					cmdListener.wakemeup = false;
-					cmdListener.closeSocket();
-//					connect_button.setText("Connect");
-				}
-				else{
-//				else if(mBtSS != null && mBtSS.getState() == BluetoothSerialService.STATE_CONNECTED){
-//					connect_button.setText("Connect");
-					final EditText input = new EditText(context);
-					input.setText(IP);
-					new AlertDialog.Builder(context).setTitle("请输入IP").setIcon(android.R.drawable.ic_dialog_info)
-							.setView(input).setNegativeButton("取消", null).setPositiveButton("确定",new DialogInterface.OnClickListener() {
-								@Override
-								public void onClick(DialogInterface dialog,int which) {
-									if(cmdListener == null){
-										cmdListener = new CmdListener(input.getText().toString(), connectpc, mBluetoothAdapter, context, handler);
-										new Thread(cmdListener).start();
-									}
-									else{
-										cmdListener.wakemeup = true;
-										synchronized (cmdListener.wakeObj) {
-											System.out.println("notify");
-											cmdListener.wakeObj.notify();
-										}
-									}
-									synchronized (cmdListener.obj) {
-										try {
-											cmdListener.obj.wait();
-										} catch (InterruptedException e) {
-											e.printStackTrace();
-										}
-									}
-									if (cmdListener.isConnected()) {
-//										connect_button.setText("Disconnect");
-										Toast.makeText(getApplicationContext(),"Connection Successful",Toast.LENGTH_LONG).show();
-									} else {
-//										connect_button.setText("Connect");
-										Toast.makeText(getApplicationContext(),"Connection Failed",Toast.LENGTH_LONG).show();
-									}
-								}
-							}).show();
-				}
-			}
-		});
-/*		
-		Button steerStop = (Button)findViewById(R.id.steer_stop);
-		steerStop.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				for(String name : carName){
-					BluetoothSerialService btss = mBtSS[name2pos.indexOf(name)];
-					if (btss == null || btss.getState() != BluetoothSerialService.STATE_CONNECTED) {
-						Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-					}
-	            	else {
-	            		byte[] send = ByteBuffer.allocate(4).putInt(codes.NO_SPEED).array();
-	            		btss.write(send);
-	            	}
-				}
-			}
-		});
-		
-		Button forward = (Button)findViewById(R.id.steer_front);
-		forward.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.SPEED_FRONT[31]).array();
-    				mBtSS.write(send);
-            	}
-			}
-		});
-		
-		Button backward = (Button)findViewById(R.id.steer_back);
-		backward.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.SPEED_BACK[31]).array();
-    				mBtSS.write(send);
-            	}
-			}
-		});
-		
-		Button steerLeft = (Button)findViewById(R.id.steer_left);
-		steerLeft.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		String s = steerParam.getText().toString();
-            		int param = 31;
-            		if(s != null && !s.equals(""))
-            			param = Integer.parseInt(s);
-            		System.out.println("param: "+param);
-            		
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.STEER_LEFT[param]).array();
-    				mBtSS.write(send);
-            	}
-			}
-		});
-		
-		Button steerRight = (Button)findViewById(R.id.steer_right);
-		steerRight.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		String s = steerParam.getText().toString();
-            		int param = 31;
-            		if(s != null && !s.equals(""))
-            			param = Integer.parseInt(s);
-            		System.out.println("param: "+param);
-            		
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.STEER_RIGHT[param]).array();
-    				mBtSS.write(send);
-            	}
-			}
-		});
-		
-		Button nosteer = (Button)findViewById(R.id.no_steer);
-		nosteer.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.NO_STEER).array();
-    				mBtSS.write(send);
-            	}
-			}
-		});
-		
-		Button horn = (Button)findViewById(R.id.horn);
-		horn.setOnTouchListener(new View.OnTouchListener() {
-			@SuppressLint("ClickableViewAccessibility")
-			@Override			
-		    public boolean onTouch(View v, MotionEvent event) {
-				if(event.getAction() == MotionEvent.ACTION_DOWN) {
-					// Check that we're actually connected before trying anything
-					if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-						Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-					}
-					else {
-						byte[] send = ByteBuffer.allocate(4).putInt(codes.HORN_ON).array();
-						mBtSS.write(send);
-					}
-				}
-				if(event.getAction() == MotionEvent.ACTION_UP){
-					byte[] send = ByteBuffer.allocate(4).putInt(codes.HORN_OFF).array();
-					mBtSS.write(send);
-	            }
-	            return true;
-		    }
-		});
-		
-		Button lights = (Button)findViewById(R.id.lights);
-		lights.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		byte[] send = ByteBuffer.allocate(4).putInt(codes.LIGHTS_OFF).array();
-            		if(lightsCount == 0) {
-            			send = ByteBuffer.allocate(4).putInt(codes.LIGHTS_SOFT).array();
-            			lightsCount++;
-            		}
-            		else if(lightsCount == 1) {
-            			send = ByteBuffer.allocate(4).putInt(codes.LIGHTS).array();
-            			lightsCount++;
-            		}
-            		else {
-            			send = ByteBuffer.allocate(4).putInt(codes.LIGHTS_OFF).array();
-            			lightsCount = 0;
-            		}
-            		mBtSS.write(send);
-            	}
-            }
-        });
-		
-		
-		Button onoffBtn = (Button)findViewById(R.id.onoff);
-		onoffBtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		mBtSS.stop();
-            		mBtSS = new BluetoothSerialService(context, handler);
-            	}
-            }
-        });
-		
-		Runnable blinkRunnable = new Runnable() {
-			@Override
-			public void run() {
-				byte[] send = null;
-				while(true) {
-					if(blinkLeftFlag == 1) {
-						//back
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_LEFT[0]).array();
-						//front
-						mBtSS.write(send);
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_LEFT[1]).array();
-						mBtSS.write(send);
-						try {
-								Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_LEFT_OFF).array();
-						mBtSS.write(send);
-						try {
-							Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-					else if(blinkRightFlag == 1) {
-						//back
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_RIGHT[0]).array();
-						//front
-						mBtSS.write(send);
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_RIGHT[1]).array();
-						mBtSS.write(send);
-						try {
-								Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						send = ByteBuffer.allocate(4).putInt(codes.BLINK_RIGHT_OFF).array();
-						mBtSS.write(send);
-						try {
-							Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-					else if(faultFlag == 1) {
-						for(int signal : codes.FAULT) {
-							send = ByteBuffer.allocate(4).putInt(signal).array();
-							mBtSS.write(send);
-						}
-						try {
-								Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						
-						for(int signal : codes.FAULT_OFF) {
-							send = ByteBuffer.allocate(4).putInt(signal).array();
-							mBtSS.write(send);
-						}
-						try {
-							Thread.sleep(400);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-					else {
-						try {
-							Thread.sleep(200);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-					
-				}
-			}
-		};
-		
-		final Thread blinkRunnableThread = new Thread(blinkRunnable);
-		blinkRunnableThread.start();
-		
-		Button blinkLeft = (Button)findViewById(R.id.blink_left);
-		blinkLeft.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		if(blinkLeftFlag == 0) {
-            			blinkLeftFlag = 1;
-            		}
-            		else if(blinkLeftFlag == 1) {
-            			blinkLeftFlag = 0;
-            		}
-            	}
-            }
-        });
-		
-		Button blinkRight = (Button)findViewById(R.id.blink_right);
-		blinkRight.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		if(blinkRightFlag == 0) {
-            			blinkRightFlag = 1;
-            		}
-            		else if(blinkRightFlag == 1) {
-            			blinkRightFlag = 0;
-            		}
-            	}
-            }
-        });
-		
-		Button fault = (Button)findViewById(R.id.fault);
-		fault.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	if (mBtSS == null || mBtSS.getState() != BluetoothSerialService.STATE_CONNECTED) {
-					Toast.makeText(context, R.string.not_connected, Toast.LENGTH_SHORT).show();
-				}
-            	else {
-            		if(faultFlag == 0) {
-            			faultFlag = 1;
-            		}
-            		else if(faultFlag == 1) {
-            			faultFlag = 0;
-            		}
-            	}
-            }
-        });
-*/		
-		
+		if(cmdListener == null){
+			cmdListener = new CmdListener(null, connectpc, mBluetoothAdapter, context, handler);
+			new Thread(cmdListener).start();
+		}
 	}
 	
 	@Override

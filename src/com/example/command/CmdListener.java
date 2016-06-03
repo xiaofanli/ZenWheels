@@ -30,7 +30,7 @@ public class CmdListener extends Thread{
 	private String ip = null;
 	private Context context;
     private Handler handler;
-	public Object wakeObj = new Object(), obj = new Object();
+	public Object wakeObj = new Object();
 	public boolean wakemeup = true;
 //	public static boolean connected = false;
 //	Button connButton = null;
@@ -85,14 +85,14 @@ public class CmdListener extends Thread{
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.STEER_LEFT[cmd.param]).array();
 			            		btss.write(send);
-			            		System.out.println("steer left");
+//			            		System.out.println("steer left");
 			            	}
 							break;
 						case Command.RIGHT:
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.STEER_RIGHT[cmd.param]).array();
 			            		btss.write(send);
-			            		System.out.println("steer right");
+//			            		System.out.println("steer right");
 			            	}
 							break;
 						case Command.NO_STEER:
@@ -115,8 +115,11 @@ public class CmdListener extends Thread{
 							BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(MainActivity.carAddrMap.get(cmd.car));
 							if(btss.getState() == BluetoothSerialService.STATE_CONNECTED)
 								handler.obtainMessage(MainActivity.MESSAGE_DEVICE_CONNECTED, device).sendToTarget();
-							else
-								btss.connect(device, true);
+							else{
+								if(!btss.waiting4Listen)
+									MainActivity.threadPool.execute(btss.new Wait4ListenTask(device, true));
+//								btss.connect(device, true);
+							}
 							break;
 						case Command.DISCONNECT:
 							if(btss != null)
@@ -151,13 +154,15 @@ public class CmdListener extends Thread{
 		}
 	}
 
-	@Override
 	public void run() {
 		instrHandler.setDaemon(true);
 		instrHandler.start();
 		try {
+			System.out.println("here");
 			server = new ServerSocket(MainActivity.PORT);
+			System.out.println("there");
 		} catch (IOException e2) {
+			System.out.println("there2");
 			e2.printStackTrace();
 		}
 		if(server == null)
@@ -169,36 +174,40 @@ public class CmdListener extends Thread{
 				socket.setTcpNoDelay(true);
 				in = new DataInputStream(socket.getInputStream());
 				out = new DataOutputStream(socket.getOutputStream());
-//				connected = true;
 				sendConnectedCarInfo();
 				handler.obtainMessage(R.string.pc_connected).sendToTarget();
-//				new LongTimeTask().execute("Disconnect");
-				synchronized (obj) {
-					obj.notify();
-				}
 			}catch (IOException e) {
 				e.printStackTrace();
-//				connected = false;
+				try {
+					socket.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 				handler.obtainMessage(R.string.pc_disconnected).sendToTarget();
-//				new LongTimeTask().execute("Connect");
 			}
 			
 			while(true){
 				try {
-					String[] cmd = in.readUTF().split("_");
+					String s = in.readUTF();
+					System.out.println(s);
+					String[] cmd = s.split("_");
 //					System.out.println("NEW CMD");
-//					int carid = MainActivity.name2pos.indexOf(cmd[0]);
 					int cw = Integer.parseInt(cmd[1]);
 					int param = Integer.parseInt(cmd[2]);
 					synchronized (queue) {
-						queue.add(new Command(cmd[0], cw, param));
+						queue.add(new Command(cmd[0], cw, param, socket));
 						queue.notify();
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
-//					connected = false;
+					try {
+						System.out.println("close socket");
+						socket.close();
+						System.out.println("close socket2");
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
 					handler.obtainMessage(R.string.pc_disconnected).sendToTarget();
-//					new LongTimeTask().execute("Connect");
 					break; 
 				}
 			}
@@ -224,33 +233,43 @@ public class CmdListener extends Thread{
 		}
 	}
 	
-	public void sendConnectedCarInfo(){
-		if(isConnected() && !MainActivity.connectedCars.isEmpty()){
-			String str = "ADD";
-			for(String car : MainActivity.connectedCars)
-				str += "_" + car;
+	public void write(String str){
+		if(!isConnected())
+			return;
+		synchronized (out) {
 			try {
 				out.writeUTF(str);
 				out.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
+				try {
+					socket.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
+		}
+	}
+	
+	public void sendConnectedCarInfo(){
+		if(isConnected() && !MainActivity.connectedCars.isEmpty()){
+			String str = "ADD";
+			for(String car : MainActivity.connectedCars)
+				str += "_" + car;
+			write(str);
 		}
 	}
 	
 	public void sendLostCarInfo(String car){
+		System.out.println(car+" lost sending");
 		if(isConnected()){
-			try {
-				out.writeUTF("REMOVE_" + car);
-				out.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			write("REMOVE_" + car);
+			System.out.println(car+" lost sent");
 		}
 	}
 	
 	public boolean isConnected(){
-		return socket != null && socket.isConnected();
+		return socket != null && socket.isConnected() && !socket.isClosed();
 	}
 	
 	public void closeSocket(){

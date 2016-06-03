@@ -1,8 +1,11 @@
 package com.example.command;
 
+import java.net.Socket;
+
 public class Command {
-	String car;
-	int cmd, param;
+	final String car;
+	final int cmd, param;
+	final Socket socket;
 
 	public final static int STOP = 0;
 	public final static int FORWARD = 1;
@@ -14,14 +17,15 @@ public class Command {
 	public final static int CONNECT = 7;
 	public final static int DISCONNECT = 8;
 	
-	public Command(int cmd, int param) {
-		this.cmd = cmd;
-		this.param = param;
-	}
+//	public Command(int cmd, int param) {
+//		this.cmd = cmd;
+//		this.param = param;
+//	}
 	
-	public Command(String car, int cmd, int param) {
+	public Command(String car, int cmd, int param, Socket socket) {
 		this.car = car;
 		this.cmd = cmd;
 		this.param = param;
+		this.socket = socket;
 	}
 }
