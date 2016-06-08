@@ -148,6 +148,7 @@ public class BluetoothSerialService {
 		// Create temporary object
 		ConnectedThread r = null;
 		// Synchronize a copy of the ConnectedThread
+//		System.out.println(mState + " " + mConnectedThread);
 		synchronized (this) {
 			if (mState != STATE_CONNECTED)
 				return;
@@ -390,9 +391,9 @@ public class BluetoothSerialService {
 		 */
 		public void write(byte[] buffer) {
 			try {
+				System.out.println("write");
 				mmOutStream.write(buffer);
-				mHandler.obtainMessage(MainActivity.MESSAGE_WRITE, -1, -1,
-						buffer).sendToTarget();
+				mHandler.obtainMessage(MainActivity.MESSAGE_WRITE, buffer).sendToTarget();
 				return;
 			} catch (IOException e) {
 				Log.e(TAG, "Exception during write", e);

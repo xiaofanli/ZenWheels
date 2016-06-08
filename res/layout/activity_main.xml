@@ -14,16 +14,25 @@
         android:id="@+id/bluetooth_connect"
         android:layout_width="80dp"
         android:layout_height="80dp"
-        android:layout_alignLeft="@+id/view2"
-        android:layout_toLeftOf="@+id/no_speed"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
         android:text="connectBT" />
+    
+    <Button
+        android:id="@+id/onoff"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@id/bluetooth_connect"
+        android:text="disconnectBT" />
 
     <Button
         android:id="@+id/horn"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_below="@id/bluetooth_connect"
-        android:text="horn" />
+        android:text="horn"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/lights"
@@ -32,7 +41,8 @@
         android:layout_below="@id/bluetooth_connect"
         android:layout_marginLeft="10dp"
         android:layout_toRightOf="@id/horn"
-        android:text="lights" />
+        android:text="lights"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/blink_left"
@@ -41,7 +51,8 @@
         android:layout_below="@id/bluetooth_connect"
         android:layout_marginLeft="30dp"
         android:layout_toRightOf="@id/lights"
-        android:text="left" />
+        android:text="left"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/fault"
@@ -49,7 +60,8 @@
         android:layout_height="50dp"
         android:layout_below="@id/bluetooth_connect"
         android:layout_toRightOf="@id/blink_left"
-        android:text="fault" />
+        android:text="fault"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/blink_right"
@@ -57,7 +69,8 @@
         android:layout_height="50dp"
         android:layout_below="@id/bluetooth_connect"
         android:layout_toRightOf="@id/fault"
-        android:text="right" />
+        android:text="right"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/steer_front"
@@ -66,7 +79,8 @@
         android:layout_below="@id/blink_left"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"
-        android:text="forward" />
+        android:text="forward"
+        android:visibility="invisible" />
     
     <Button
         android:id="@+id/steer_left"
@@ -74,7 +88,8 @@
         android:layout_height="80dp"
         android:layout_below="@id/steer_front"
         android:layout_marginTop="10dp"
-        android:text="left" />
+        android:text="left"
+        android:visibility="invisible" />
 
     <View
         android:id="@+id/view1"
@@ -82,7 +97,8 @@
         android:layout_height="1dip"
         android:layout_alignLeft="@+id/bluetooth_connect"
         android:layout_below="@+id/horn"
-        android:background="#000000" />
+        android:background="#000000"
+        android:visibility="invisible" />
 
     <View
         android:id="@+id/view2"
@@ -90,7 +106,8 @@
         android:layout_height="1dip"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:background="#000000" />
+        android:background="#000000"
+        android:visibility="invisible" />
 
     <View
         android:id="@+id/view3"
@@ -98,7 +115,8 @@
         android:layout_height="1dip"
         android:layout_alignBottom="@+id/bluetooth_connect"
         android:layout_alignLeft="@+id/bluetooth_connect"
-        android:background="#000000" />
+        android:background="#000000"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/steer_right"
@@ -107,7 +125,8 @@
         android:layout_alignBaseline="@+id/steer_left"
         android:layout_alignBottom="@+id/steer_left"
         android:layout_alignRight="@+id/view1"
-        android:text="right" />
+        android:text="right"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/no_steer"
@@ -115,7 +134,8 @@
         android:layout_height="40dp"
         android:layout_alignLeft="@+id/steer_left"
         android:layout_alignParentBottom="true"
-        android:text="@string/no_steer" />
+        android:text="@string/no_steer"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/no_speed"
@@ -123,17 +143,8 @@
         android:layout_height="40dp"
         android:layout_alignBottom="@+id/no_steer"
         android:layout_alignParentRight="true"
-        android:visibility="invisible"
-        android:text="@string/no_speed" />
-
-    <Button
-        android:id="@+id/onoff"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_alignRight="@+id/blink_right"
-        android:layout_below="@+id/view2"
-        android:layout_toRightOf="@+id/no_steer"
-        android:text="disconnectBT" />
+        android:text="@string/no_speed"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/steer_stop"
@@ -141,7 +152,8 @@
         android:layout_height="80dp"
         android:layout_above="@+id/steer_back"
         android:layout_alignLeft="@+id/steer_front"
-        android:text="stop" />
+        android:text="stop"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/steer_back"
@@ -149,7 +161,8 @@
         android:layout_height="80dp"
         android:layout_above="@+id/no_steer"
         android:layout_alignLeft="@+id/steer_stop"
-        android:text="backward" />
+        android:text="backward"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/pc_connect"
@@ -166,7 +179,8 @@
         android:layout_alignLeft="@+id/fault"
         android:layout_alignRight="@+id/view1"
         android:layout_alignTop="@+id/steer_front"
-        android:text="NO CAR" />
+        android:text="NO CAR"
+        android:visibility="invisible" />
 
     <EditText
         android:id="@+id/steer_param"
@@ -176,7 +190,8 @@
         android:layout_alignBottom="@+id/steer_back"
         android:layout_alignLeft="@+id/steer_left"
         android:layout_alignRight="@+id/steer_left"
-        android:ems="10" >
+        android:ems="10"
+        android:visibility="invisible" >
 
         <requestFocus />
     </EditText>

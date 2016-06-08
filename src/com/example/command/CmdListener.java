@@ -33,15 +33,12 @@ public class CmdListener extends Thread{
 	public Object wakeObj = new Object();
 	public boolean wakemeup = true;
 //	public static boolean connected = false;
-//	Button connButton = null;
 	
 	public CmdListener(String ip, Button conn, BluetoothAdapter mBluetoothAdapter, Context context, Handler handler) {
 		this.ip = ip;
 		this.mBluetoothAdapter = mBluetoothAdapter;
-//		connButton = conn;
 		this.context = context;
 		this.handler = handler;
-//		new Thread(new Handler()).start();
 	}
 	
 	private Thread instrHandler = new Thread(){
@@ -73,6 +70,7 @@ public class CmdListener extends Thread{
 							if (btss != null && btss.getState() == BluetoothSerialService.STATE_CONNECTED) {
 			            		byte[] send = ByteBuffer.allocate(4).putInt(MainActivity.codes.SPEED_FRONT[cmd.param]).array();
 			            		btss.write(send);
+			            		System.out.println("forward sent");
 			            	}
 							break;
 						case Command.BACKWARD:
