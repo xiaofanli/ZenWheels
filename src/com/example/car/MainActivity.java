@@ -8,21 +8,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -37,7 +32,7 @@ public class MainActivity extends Activity{
 	private BluetoothAdapter mBluetoothAdapter = null;
 //	public static BluetoothSerialService[] mBtSS = {null, null, null, null, null, null};
 	public static Map<String, BluetoothSerialService> mBtSS = new HashMap<String, BluetoothSerialService>();
-	public static final RaceCarCodes codes = new RaceCarCodes();
+	public static final CarCodes codes = new CarCodes();
 	public static final ExecutorService threadPool = Executors.newCachedThreadPool();
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;

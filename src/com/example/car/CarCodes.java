@@ -1,6 +1,6 @@
 package com.example.car;
 
-public class RaceCarCodes {
+public class CarCodes {
 	public final int HORN_OFF = 0x8600;
 	public final int HORN_ON = 0x8601;
 	public final int LIGHTS_OFF = 0x8500;
